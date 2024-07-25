@@ -1,0 +1,23 @@
+package com.shopit.project.payload;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ProductDTO {
+    private Long productId;
+    private String productName;
+    private String productImage;
+    private String productDescription;
+    private Integer productQuantity;
+    private Double productPrice;
+    private Double productDiscountPercentage;
+    private Double productSpecialPrice = 0.0;
+
+    public Double getProductSpecialPrice() {
+        return productPrice - (productDiscountPercentage * 0.01 * productPrice);
+    }
+}
