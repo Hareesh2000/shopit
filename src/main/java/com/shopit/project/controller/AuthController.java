@@ -1,6 +1,7 @@
 package com.shopit.project.controller;
 
-import com.shopit.project.model.AppRole;
+import com.shopit.project.exceptions.APIException;
+import com.shopit.project.model.RoleType;
 import com.shopit.project.model.Cart;
 import com.shopit.project.model.Role;
 import com.shopit.project.model.User;
@@ -26,6 +27,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -59,6 +61,7 @@ public class AuthController {
         this.cartRepository = cartRepository;
     }
 
+    @Transactional
     @PostMapping("/signup")
     public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequest signUpRequest) {
         if (userRepository.existsByUserName(signUpRequest.getUsername())) {
@@ -74,34 +77,41 @@ public class AuthController {
                 signUpRequest.getEmail(),
                 passwordEncoder.encode(signUpRequest.getPassword()));
 
-        Set<String> strRoles = signUpRequest.getRole();
+        String roleRequested = signUpRequest.getRole();
         Set<Role> roles = new HashSet<>();
 
-        if (strRoles == null) {
-            Role userRole = roleRepository.findByRoleName(AppRole.ROLE_USER)
-                    .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
+        Role userRole = roleRepository.findByRoleName(RoleType.ROLE_USER)
+                .orElseThrow(() -> new RuntimeException("Error: User Role is not found."));
+
+        Role sellerRole = roleRepository.findByRoleName(RoleType.ROLE_SELLER)
+                .orElseThrow(() -> new RuntimeException("Error: Seller Role is not found."));
+
+        Role adminRole = roleRepository.findByRoleName(RoleType.ROLE_ADMIN)
+                .orElseThrow(() -> new RuntimeException("Error: Admin Role is not found."));
+
+        if (roleRequested == null){
             roles.add(userRole);
-        } else {
-            strRoles.forEach(role -> {
-                switch (role) {
-                    case "admin":
-                        Role adminRole = roleRepository.findByRoleName(AppRole.ROLE_ADMIN)
-                                .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
-                        roles.add(adminRole);
+        }
+        else {
+            switch (roleRequested) {
+                case "admin":
+                    roles.add(adminRole);
+                    roles.add(userRole);
+                    roles.add(sellerRole);
+                    break;
 
-                        break;
-                    case "seller":
-                        Role modRole = roleRepository.findByRoleName(AppRole.ROLE_SELLER)
-                                .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
-                        roles.add(modRole);
+                case "seller":
+                    roles.add(sellerRole);
+                    roles.add(userRole);
+                    break;
 
-                        break;
-                    default:
-                        Role userRole = roleRepository.findByRoleName(AppRole.ROLE_USER)
-                                .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
-                        roles.add(userRole);
-                }
-            });
+                case "user":
+                    roles.add(userRole);
+                    break;
+
+                default:
+                    throw new APIException("Unknown role: " + roleRequested);
+            }
         }
 
         user.setRoles(roles);
