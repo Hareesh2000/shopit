@@ -16,22 +16,29 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.WebUtils;
 
+import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import java.security.Key;
+import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
 import java.util.Date;
 
 @Component
 public class JwtUtils {
     private static final Logger logger = LoggerFactory.getLogger(JwtUtils.class);
 
-    @Value("${spring.app.jwtSecret}")
-    private String jwtSecret;
+//    @Value("${spring.app.jwtSecret}")
+    private final String jwtSecret;
 
     @Value("${spring.app.jwtExpirationMs}")
     private int jwtExpirationMs;
 
     @Value("${spring.app.jwtCookieName}")
     private String jwtCookie;
+
+    public JwtUtils() {
+        jwtSecret = generateJwtSecretKey();
+    }
 
     public String getJwtFromCookies(HttpServletRequest request) {
         Cookie cookie = WebUtils.getCookie(request, jwtCookie);
@@ -76,8 +83,18 @@ public class JwtUtils {
                 .getPayload().getSubject();
     }
 
+    private String generateJwtSecretKey(){
+        try{
+            KeyGenerator keyGen = KeyGenerator.getInstance("HmacSHA256");
+            SecretKey key = keyGen.generateKey();
+            return Base64.getEncoder().encodeToString(key.getEncoded());
+        }catch(NoSuchAlgorithmException e){
+            throw new RuntimeException(e);
+        }
+    }
     private Key key() {
-        return Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSecret));
+        byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
+        return Keys.hmacShaKeyFor(keyBytes);
     }
 
     public boolean validateJwtToken(String authToken) {
