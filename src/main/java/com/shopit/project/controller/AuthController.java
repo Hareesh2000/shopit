@@ -8,14 +8,13 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/api")
 public class AuthController {
 
     private final AuthService authService;
@@ -26,7 +25,7 @@ public class AuthController {
     }
 
     @Transactional
-    @PostMapping("/signup")
+    @PostMapping("/auth/signup")
     public ResponseEntity<SignupResponse> registerUser(@Valid @RequestBody SignupRequest signupRequest) {
         SignupResponse response = authService.registerUser(signupRequest);
 
@@ -36,7 +35,7 @@ public class AuthController {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
-    @PostMapping("/login")
+    @PostMapping("/auth/login")
     public ResponseEntity<?> authenticateUser(@RequestBody @Valid LoginRequest loginRequest) {
         AuthResponse authResponse = authService.authenticateUser(loginRequest);
 
@@ -48,7 +47,6 @@ public class AuthController {
         return new ResponseEntity<>(userInfoResponse, headers, HttpStatus.OK);
     }
 
-    @PreAuthorize("hasRole('ROLE_USER')")
     @PostMapping(value = "/logout")
     public ResponseEntity<?> unAuthenticateUser() {
         ResponseCookie cookie = authService.generateLogoutCookie();
