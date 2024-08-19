@@ -1,5 +1,6 @@
 package com.shopit.project.model;
 
+import com.shopit.project.security.model.RefreshToken;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -58,6 +59,9 @@ public class User {
     @OneToOne(mappedBy = "user", cascade = {CascadeType.PERSIST, CascadeType.MERGE},
             orphanRemoval = true)
     private Cart cart;
+
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private RefreshToken refreshToken;
 
     public User(String userName, String userEmail, String userPassword) {
         this.userName = userName;

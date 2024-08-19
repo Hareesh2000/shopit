@@ -9,9 +9,11 @@ import com.shopit.project.model.User;
 import com.shopit.project.repository.CartRepository;
 import com.shopit.project.repository.RoleRepository;
 import com.shopit.project.repository.UserRepository;
-import com.shopit.project.security.jwt.JwtUtils;
+import com.shopit.project.security.service.JwtService;
 import com.shopit.project.security.payload.*;
-import com.shopit.project.security.services.UserDetailsImpl;
+import com.shopit.project.security.model.UserDetailsImpl;
+import com.shopit.project.security.service.RefreshTokenService;
+import com.shopit.project.util.AuthUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -28,7 +30,9 @@ import java.util.stream.Collectors;
 @Service
 public class AuthServiceImpl implements AuthService {
 
-    private final JwtUtils jwtUtils;
+    private final JwtService jwtService;
+
+    private final RefreshTokenService refreshTokenService;
 
     private final AuthenticationManager authenticationManager;
 
@@ -42,18 +46,23 @@ public class AuthServiceImpl implements AuthService {
 
     private final SignupResponse signupResponse;
 
+    private final AuthUtil authUtil;
+
     @Autowired
-    public AuthServiceImpl(JwtUtils jwtUtils, AuthenticationManager authenticationManager,
-                           UserRepository userRepository, RoleRepository roleRepository,
-                           PasswordEncoder passwordEncoder, CartRepository cartRepository,
-                           SignupResponse signupResponse) {
-        this.jwtUtils = jwtUtils;
+    public AuthServiceImpl(JwtService jwtService, RefreshTokenService refreshTokenService,
+                           AuthenticationManager authenticationManager, UserRepository userRepository,
+                           RoleRepository roleRepository, PasswordEncoder passwordEncoder,
+                           CartRepository cartRepository, SignupResponse signupResponse,
+                           AuthUtil authUtil) {
+        this.jwtService = jwtService;
+        this.refreshTokenService = refreshTokenService;
         this.authenticationManager = authenticationManager;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
         this.cartRepository = cartRepository;
         this.signupResponse = signupResponse;
+        this.authUtil = authUtil;
     }
 
     @Override
@@ -141,18 +150,26 @@ public class AuthServiceImpl implements AuthService {
 
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
-        ResponseCookie jwtCookie = jwtUtils.generateJwtCookie(userDetails);
+        String jwt = jwtService.generateJwtFromUsername(userDetails.getUsername());
+
+        String refreshTokenCookie = refreshTokenService.generateRefreshTokenCookie(userDetails.getUsername());
 
         List<String> roles = userDetails.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList());
 
         return new AuthResponse(userDetails.getUserId(),
-                userDetails.getUsername(), roles, jwtCookie.toString());
+                userDetails.getUsername(), roles, jwt, refreshTokenCookie);
     }
 
     @Override
     public ResponseCookie generateLogoutCookie() {
-        return jwtUtils.generateCleanJwtCookie();
+        return refreshTokenService.generateCleanCookie();
+    }
+
+    @Override
+    public void unAuthenticateUser() {
+        User user = authUtil.loggedInUser();
+        refreshTokenService.invalidateRefreshToken(user);
     }
 }

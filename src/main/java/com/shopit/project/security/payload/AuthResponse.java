@@ -9,13 +9,16 @@ public class AuthResponse {
     private Long userId;
     private String username;
     private List<String> roles;
-    private String jwtCookie;
+    private String jwt;
+    private String refreshTokenCookie;
 
-    public AuthResponse(Long userId, String username, List<String> roles, String jwtCookie) {
+    public AuthResponse(Long userId, String username, List<String> roles,
+                        String jwt, String refreshToken) {
         this.username = username;
         this.roles = roles;
         this.userId = userId;
-        this.jwtCookie = jwtCookie;
+        this.jwt = jwt;
+        this.refreshTokenCookie = refreshToken;
     }
 
     public AuthResponse() {

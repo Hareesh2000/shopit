@@ -9,4 +9,6 @@ public interface AuthService {
     AuthResponse authenticateUser(LoginRequest loginRequest);
 
     ResponseCookie generateLogoutCookie();
+
+    void unAuthenticateUser();
 }

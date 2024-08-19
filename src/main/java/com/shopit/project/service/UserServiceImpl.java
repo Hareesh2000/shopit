@@ -2,7 +2,7 @@ package com.shopit.project.service;
 
 import com.shopit.project.exceptions.AuthenticationException;
 import com.shopit.project.security.payload.UserInfoResponse;
-import com.shopit.project.security.services.UserDetailsImpl;
+import com.shopit.project.security.model.UserDetailsImpl;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;

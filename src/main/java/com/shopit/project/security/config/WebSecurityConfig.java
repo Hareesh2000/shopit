@@ -1,6 +1,8 @@
-package com.shopit.project.security;
+package com.shopit.project.security.config;
 
-import com.shopit.project.security.jwt.JwtUtils;
+import com.shopit.project.security.entrypoint.JwtAuthenticationEntryPoint;
+import com.shopit.project.security.filter.JwtFilter;
+import com.shopit.project.security.service.JwtService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,32 +22,30 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-import com.shopit.project.security.jwt.AuthEntryPointJwt;
-import com.shopit.project.security.jwt.AuthTokenFilter;
-import com.shopit.project.security.services.UserDetailsServiceImpl;
+import com.shopit.project.security.service.UserDetailsServiceImpl;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity(prePostEnabled = true)
+@EnableMethodSecurity()
 public class WebSecurityConfig {
     UserDetailsServiceImpl userDetailsService;
 
-    private AuthEntryPointJwt unauthorizedHandler;
+    private final JwtAuthenticationEntryPoint jwtAuthEntryPoint;
 
-    private JwtUtils jwtUtils; //JWT utilities class
+    private final JwtService jwtService; //JWT utilities class
 
     @Autowired
     public WebSecurityConfig(UserDetailsServiceImpl userDetailsService,
-                             AuthEntryPointJwt unauthorizedHandler,
-                             JwtUtils jwtUtils) {
+                             JwtAuthenticationEntryPoint jwtAuthEntryPoint,
+                             JwtService jwtService) {
         this.userDetailsService = userDetailsService;
-        this.unauthorizedHandler = unauthorizedHandler;
-        this.jwtUtils = jwtUtils;
+        this.jwtAuthEntryPoint = jwtAuthEntryPoint;
+        this.jwtService = jwtService;
     }
 
     @Bean
-    public AuthTokenFilter authenticationJwtTokenFilter(JwtUtils jwtUtils, UserDetailsServiceImpl userDetailsService) {
-        return new AuthTokenFilter(jwtUtils, userDetailsService);
+    public JwtFilter authenticationJwtTokenFilter(JwtService jwtService, UserDetailsServiceImpl userDetailsService) {
+        return new JwtFilter(jwtService, userDetailsService);
     }
 
 
@@ -79,7 +79,7 @@ public class WebSecurityConfig {
                 .csrf(csrf -> csrf
                         .ignoringRequestMatchers("/api/auth/**")
                 )
-                .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
+                .exceptionHandling(exception -> exception.authenticationEntryPoint(jwtAuthEntryPoint))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth ->
                         auth.requestMatchers("/api/auth/**").permitAll()
@@ -95,7 +95,7 @@ public class WebSecurityConfig {
 
         http.authenticationProvider(authenticationProvider());
 
-        http.addFilterBefore(authenticationJwtTokenFilter(jwtUtils, userDetailsService), UsernamePasswordAuthenticationFilter.class);
+        http.addFilterBefore(authenticationJwtTokenFilter(jwtService, userDetailsService), UsernamePasswordAuthenticationFilter.class);
 
         http.headers(headers -> headers.frameOptions(
                 frameOptions -> frameOptions.sameOrigin()
